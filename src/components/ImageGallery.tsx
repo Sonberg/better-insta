@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import Image from 'next/image';
 import { useInView } from 'react-intersection-observer';
 import LikeButton from './LikeButton';
 import { deleteImage } from '@/app/actions/images';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Expand } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useConfetti } from '@/hooks/useConfetti';
+import ImageDialog from './ImageDialog';
 import type { ImageData, ApiResponse } from '@/types';
 
 interface LikeRecord {
@@ -39,6 +40,7 @@ export default function ImageGallery() {
   const { showConfetti } = useConfetti();
   const imageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const heartIconRefs = useRef<Map<string, SVGSVGElement>>(new Map());
+  const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
 
   useEffect(() => {
     userName.current = localStorage.getItem('userName');
@@ -199,76 +201,94 @@ export default function ImageGallery() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
-      {data.pages.map((page, pageIndex) =>
-        page.images.map((image) => (
-          <div 
-            key={image.id} 
-            className="group relative aspect-square bg-gray-100 overflow-hidden"
-            ref={(el) => {
-              if (el) {
-                imageRefs.current.set(image.id, el);
-              } else {
-                imageRefs.current.delete(image.id);
-              }
-            }}
-          >
-            <Image
-              src={image.gallery_url}
-              alt={image.description || 'Uploaded image'}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              priority={pageIndex === 0}
-            />
-            <div className="absolute top-4 right-4 z-10 flex gap-2">
-              <LikeButton
-                key={`${image.id}-${image.likes?.count}-${image.likes?.liked}`}
-                imageId={image.id}
-                initialLiked={Boolean(image.likes?.liked)}
-                initialCount={image.likes?.count || 0}
-                userName={userName.current || ''}
-                onHeartRef={(el) => {
-                  if (el) {
-                    heartIconRefs.current.set(image.id, el);
-                  } else {
-                    heartIconRefs.current.delete(image.id);
-                  }
-                }}
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+        {data.pages.map((page, pageIndex) =>
+          page.images.map((image) => (
+            <div 
+              key={image.id} 
+              className="group relative aspect-square bg-gray-100 overflow-hidden"
+              ref={(el) => {
+                if (el) {
+                  imageRefs.current.set(image.id, el);
+                } else {
+                  imageRefs.current.delete(image.id);
+                }
+              }}
+            >
+              <Image
+                src={image.gallery_url}
+                alt={image.description || 'Uploaded image'}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                priority={pageIndex === 0}
               />
-              {userName.current === image.uploaded_by && (
+              <div className="absolute top-4 right-4 z-10 flex gap-2">
                 <button
-                  onClick={() => handleDelete(image.id)}
-                  className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors"
-                  aria-label="Delete image"
+                  onClick={() => setSelectedImage(image)}
+                  className="p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors opacity-0 group-hover:opacity-100"
+                  aria-label="View full image"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Expand className="w-4 h-4" />
                 </button>
-              )}
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <div className="absolute bottom-4 left-4 right-4 text-white">
-                <p className="text-sm mb-2">{image.description || 'No description'}</p>
-                <div className="flex items-center">
-                  <span className="text-xs">By {image.uploaded_by || 'Anonymous'}</span>
+                <LikeButton
+                  key={`${image.id}-${image.likes?.count}-${image.likes?.liked}`}
+                  imageId={image.id}
+                  initialLiked={Boolean(image.likes?.liked)}
+                  initialCount={image.likes?.count || 0}
+                  userName={userName.current || ''}
+                  onHeartRef={(el) => {
+                    if (el) {
+                      heartIconRefs.current.set(image.id, el);
+                    } else {
+                      heartIconRefs.current.delete(image.id);
+                    }
+                  }}
+                />
+                {userName.current === image.uploaded_by && (
+                  <button
+                    onClick={() => handleDelete(image.id)}
+                    className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors"
+                    aria-label="Delete image"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <p className="text-sm mb-2">{image.description || 'No description'}</p>
+                  <div className="flex items-center">
+                    <span className="text-xs">By {image.uploaded_by || 'Anonymous'}</span>
+                  </div>
                 </div>
               </div>
             </div>
+          ))
+        )}
+        {hasNextPage && (
+          <div 
+            ref={ref} 
+            className="col-span-full h-px"
+            aria-hidden="true"
+          />
+        )}
+        {isFetchingNextPage && (
+          <div className="col-span-full h-20 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900" />
           </div>
-        ))
-      )}
-      {hasNextPage && (
-        <div 
-          ref={ref} 
-          className="col-span-full h-px"
-          aria-hidden="true"
+        )}
+      </div>
+
+      {selectedImage && (
+        <ImageDialog
+          isOpen={true}
+          onClose={() => setSelectedImage(null)}
+          imageUrl={selectedImage.original_url}
+          description={selectedImage.description || 'Uploaded image'}
         />
       )}
-      {isFetchingNextPage && (
-        <div className="col-span-full h-20 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900" />
-        </div>
-      )}
-    </div>
+    </>
   );
 }
