@@ -40,12 +40,18 @@ export default function FloatingUploadButton({ onUpload }: FloatingUploadButtonP
         <button
           onClick={() => setIsDialogOpen(true)}
           className={`flex items-center justify-center w-14 h-14 
-            bg-blue-500 hover:bg-blue-600 
-            rounded-full shadow-lg cursor-pointer transition-colors duration-200
-            ${isDragging ? 'ring-4 ring-blue-300' : ''}`}
+            bg-gradient-to-br from-blue-400 via-blue-500 to-purple-600
+            hover:from-blue-500 hover:via-blue-600 hover:to-purple-700
+            rounded-full shadow-lg cursor-pointer transition-all duration-300
+            hover:shadow-blue-500/25 hover:shadow-xl
+            ${isDragging ? 'ring-4 ring-blue-300 animate-pulse' : ''}`}
+          style={{
+            backgroundSize: '200% 200%',
+            animation: 'gradient 5s ease infinite'
+          }}
         >
           <svg
-            className="w-6 h-6 text-white"
+            className="w-6 h-6 text-white drop-shadow"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -60,6 +66,20 @@ export default function FloatingUploadButton({ onUpload }: FloatingUploadButtonP
           </svg>
         </button>
       </div>
+
+      <style jsx global>{`
+        @keyframes gradient {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+      `}</style>
 
       <UploadDialog
         isOpen={isDialogOpen}

@@ -38,6 +38,7 @@ export default function ImageGallery() {
   const queryClient = useQueryClient();
   const { showConfetti } = useConfetti();
   const imageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const heartIconRefs = useRef<Map<string, SVGSVGElement>>(new Map());
 
   useEffect(() => {
     userName.current = localStorage.getItem('userName');
@@ -59,10 +60,10 @@ export default function ImageGallery() {
             // Skip confetti for our own likes (those are handled in LikeButton)
             if (payload.new.user_name === userName.current) return;
 
-            // Find the image element and show confetti from its position
-            const imageElement = imageRefs.current.get(payload.new.image_id);
-            if (imageElement) {
-              const rect = imageElement.getBoundingClientRect();
+            // Find the heart icon element and show confetti from its position
+            const heartIcon = heartIconRefs.current.get(payload.new.image_id);
+            if (heartIcon) {
+              const rect = heartIcon.getBoundingClientRect();
               const x = rect.left + rect.width / 2;
               const y = rect.top + rect.height / 2;
               showConfetti(x, y);
@@ -115,6 +116,7 @@ export default function ImageGallery() {
     return () => {
       subscription.unsubscribe();
       imageRefs.current.clear();
+      heartIconRefs.current.clear();
     };
   }, [queryClient, showConfetti]);
 
@@ -226,6 +228,13 @@ export default function ImageGallery() {
                 initialLiked={Boolean(image.likes?.liked)}
                 initialCount={image.likes?.count || 0}
                 userName={userName.current || ''}
+                onHeartRef={(el) => {
+                  if (el) {
+                    heartIconRefs.current.set(image.id, el);
+                  } else {
+                    heartIconRefs.current.delete(image.id);
+                  }
+                }}
               />
               {userName.current === image.uploaded_by && (
                 <button

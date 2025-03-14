@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { useConfetti } from '@/hooks/useConfetti';
 import { useQueryClient, InfiniteData } from '@tanstack/react-query';
@@ -11,15 +11,22 @@ interface LikeButtonProps {
   initialLiked: boolean;
   initialCount: number;
   userName: string;
+  onHeartRef?: (el: SVGSVGElement | null) => void;
 }
 
-export default function LikeButton({ imageId, initialLiked, initialCount, userName }: LikeButtonProps) {
+export default function LikeButton({ imageId, initialLiked, initialCount, userName, onHeartRef }: LikeButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const heartIconRef = useRef<SVGSVGElement>(null);
   const { showConfetti } = useConfetti();
   const queryClient = useQueryClient();
   const [optimisticLiked, setOptimisticLiked] = useState(initialLiked);
   const [optimisticCount, setOptimisticCount] = useState(initialCount);
+
+  // Forward the heart icon ref to parent
+  useEffect(() => {
+    onHeartRef?.(heartIconRef.current);
+    return () => onHeartRef?.(null);
+  }, [onHeartRef]);
 
   const handleClick = useCallback(async () => {
     if (!userName) {
