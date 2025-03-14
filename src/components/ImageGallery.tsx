@@ -178,6 +178,8 @@ export default function ImageGallery() {
       return lastPage.pagination.current_page + 1;
     },
     initialPageParam: 1,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
   });
 
   useEffect(() => {
