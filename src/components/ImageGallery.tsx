@@ -51,7 +51,23 @@ export default function ImageGallery() {
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (isLoading) {
-    return null;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="aspect-[3/4]">
+            <div className="w-full h-full  bg-background shadow-sm overflow-hidden">
+              <div className="animate-pulse bg-muted h-full w-full" />
+              <div className="p-4">
+                <div className="space-y-2">
+                  <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (error) {
@@ -65,32 +81,26 @@ export default function ImageGallery() {
 
   return (
     <>
-      <div className="columns-1 md:columns-2 lg:columns-3 gap-4 p-4 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
         {allImages.map((image, index) => (
           <div
             key={image.id}
-            className={`break-inside-avoid mb-4 transition-opacity duration-300 ${
+            className={`transition-opacity duration-300 ${
               loadedImages.has(image.id) ? "opacity-100" : "opacity-0"
             }`}
             style={{ minHeight: loadedImages.has(image.id) ? "auto" : "300px" }}
           >
-            <div className="bg-background shadow-sm overflow-hidden">
-              <div className="relative w-full">
+            <div className="bg-background overflow-hidden">
+              <div className="relative aspect-[3/4]">
                 <Image
                   src={image.gallery_url}
                   alt={image.description}
-                  width={800}
-                  height={600}
+                  fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   quality={75}
                   priority={index < 3}
                   onLoad={() => handleImageLoad(image.id)}
-                  className="w-full"
-                  style={{
-                    width: "100%",
-                    height: "auto",
-                    objectFit: "cover",
-                  }}
+                  className="object-cover"
                 />
               </div>
               <div className="p-4 flex flex-col gap-1">
@@ -108,9 +118,9 @@ export default function ImageGallery() {
       </div>
 
       {/* Loading indicator and observer target */}
-      <div ref={observerTarget} className="w-full py-8 flex justify-center">
+      <div ref={observerTarget} className="w-full py-8 flex justify-center mb-48">
         {isFetchingNextPage && (
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-1 border-gray-900"></div>
         )}
       </div>
     </>
