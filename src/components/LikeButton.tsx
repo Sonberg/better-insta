@@ -55,20 +55,25 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
   }, [imageId, userName, initialLiked, showConfetti, queryClient]);
 
   return (
-    <button
-      ref={buttonRef}
-      onClick={handleClick}
-      className={`p-2 rounded-full transition-colors ${
-        initialLiked
-          ? 'bg-red-500 hover:bg-red-600'
-          : 'bg-white/90 hover:bg-white'
-      }`}
-      aria-label={initialLiked ? 'Unlike image' : 'Like image'}
-    >
-      <Heart
-        className={`w-4 h-4 ${initialLiked ? 'text-white fill-current' : 'text-gray-700'}`}
-      />
-      <span className="sr-only">{initialCount} likes</span>
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        ref={buttonRef}
+        onClick={handleClick}
+        className={`p-2 rounded-full transition-colors ${
+          initialLiked
+            ? 'bg-red-500 hover:bg-red-600'
+            : 'bg-white/90 hover:bg-white'
+        }`}
+        aria-label={initialLiked ? 'Unlike image' : 'Like image'}
+      >
+        <Heart
+          className={`w-4 h-4 ${initialLiked ? 'text-white fill-current' : 'text-gray-700'}`}
+        />
+        <span className="sr-only">{initialCount} likes</span>
+      </button>
+      <span className="text-sm font-medium text-white bg-black/50 px-2 py-1 rounded-full">
+        {initialCount}
+      </span>
+    </div>
   );
 } 
