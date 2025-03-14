@@ -3,6 +3,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { fetchImages } from '../services/imageService';
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 
 export default function ImageGallery() {
   const observerTarget = useRef<HTMLDivElement>(null);
@@ -83,12 +84,23 @@ export default function ImageGallery() {
               loadedImages.has(image.id) ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <img
-              src={image.gallery_url}
-              alt={image.description}
-              className="w-full object-cover"
-              onLoad={() => handleImageLoad(image.id)}
-            />
+            <div className="relative w-full">
+              <Image
+                src={image.gallery_url}
+                alt={image.description}
+                className="w-full"
+                width={800}
+                height={600}
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                quality={75}
+                onLoad={() => handleImageLoad(image.id)}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  objectFit: 'cover',
+                }}
+              />
+            </div>
             <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 transform translate-y-full transition-transform duration-300 group-hover:translate-y-0">
               <p className="text-sm">{image.description}</p>
               <p className="text-xs opacity-75">Uploaded by {image.uploaded_by}</p>
