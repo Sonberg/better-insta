@@ -1,10 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const SUPABASE_API_URL = 'https://wkuhfuofhpjuwilhhtnj.supabase.co/functions/v1';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${SUPABASE_API_URL}/list-images`, {
+    const searchParams = request.nextUrl.searchParams;
+    const page = searchParams.get('page') || '1';
+
+    const response = await fetch(`${SUPABASE_API_URL}/list-images?page=${page}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
