@@ -31,7 +31,10 @@ interface ApiResponse {
 }
 
 export default function ImageGallery() {
-  const { ref, inView } = useInView();
+  const { ref, inView } = useInView({
+    threshold: 0.1,
+    rootMargin: '400px 0px',
+  });
   const userName = useRef<string | null>(null);
 
   useEffect(() => {
@@ -132,11 +135,18 @@ export default function ImageGallery() {
           </div>
         ))
       )}
-      <div ref={ref} className="col-span-full h-20 flex items-center justify-center">
-        {isFetchingNextPage && (
+      {hasNextPage && (
+        <div 
+          ref={ref} 
+          className="col-span-full h-px"
+          aria-hidden="true"
+        />
+      )}
+      {isFetchingNextPage && (
+        <div className="col-span-full h-20 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900" />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
