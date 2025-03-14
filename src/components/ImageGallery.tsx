@@ -75,9 +75,10 @@ export default function ImageGallery() {
           table: 'likes',
         },
         async (payload: RealtimePostgresChangesPayload<LikeRecord>) => {
-          // Only show confetti for new likes, not unlikes
+          // Only show confetti for new likes (INSERT), never for unlikes (DELETE)
+          // This ensures confetti only appears when someone likes an image
           if (payload.eventType === 'INSERT' && isLikeRecord(payload.new)) {
-            // Don't show confetti for our own likes (those are handled in the LikeButton)
+            // Skip confetti for our own likes (those are handled in LikeButton)
             if (payload.new.user_name === userName.current) return;
 
             // Find the image element and show confetti from its position
