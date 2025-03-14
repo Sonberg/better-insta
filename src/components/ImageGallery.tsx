@@ -1,29 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Image } from '../types/images';
+import { useQuery } from '@tanstack/react-query';
 import { fetchImages } from '../services/imageService';
 
 export default function ImageGallery() {
-  const [images, setImages] = useState<Image[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadImages = async () => {
-      try {
-        const response = await fetchImages();
-        setImages(response.images);
-      } catch (err) {
-        setError('Failed to load images');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadImages();
-  }, []);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['images'],
+    queryFn: fetchImages,
+  });
 
   if (isLoading) {
     return (
@@ -36,14 +20,14 @@ export default function ImageGallery() {
   if (error) {
     return (
       <div className="text-center text-red-500 p-4">
-        {error}
+        Failed to load images
       </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-      {images.map((image) => (
+      {data?.images.map((image) => (
         <div key={image.id} className="relative group overflow-hidden rounded-lg shadow-lg">
           <img
             src={image.gallery_url}
