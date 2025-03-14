@@ -5,7 +5,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import { useInView } from 'react-intersection-observer';
 import LikeButton from './LikeButton';
-import { getLikeStatus } from '@/app/actions/likes';
+import { getBatchLikeStatus } from '@/app/actions/likes';
 
 interface ImageData {
   id: string;
@@ -42,19 +42,21 @@ export default function ImageGallery() {
     const response = await fetch(`/api/images?page=${pageParam}`);
     const data = await response.json();
     
-    // Fetch like status for each image
-    const imagesWithLikes = await Promise.all(
-      data.images.map(async (image: ImageData) => {
-        const likeStatus = await getLikeStatus(image.id, userName.current || '');
-        return {
-          ...image,
-          likes: {
-            count: likeStatus.success ? likeStatus.count : 0,
-            liked: likeStatus.success ? (likeStatus.liked ? 1 : 0) : 0
-          }
-        };
-      })
-    );
+    // Batch fetch likes for all images on the page
+    const imageIds = data.images.map((image: ImageData) => image.id);
+    const likeStatusMap = await getBatchLikeStatus(imageIds, userName.current || '');
+    
+    // Merge like status with image data
+    const imagesWithLikes = data.images.map((image: ImageData) => {
+      const likeStatus = likeStatusMap[image.id] || { success: true, liked: false, count: 0 };
+      return {
+        ...image,
+        likes: {
+          count: likeStatus.count,
+          liked: likeStatus.liked ? 1 : 0
+        }
+      };
+    });
 
     return {
       images: imagesWithLikes,

@@ -49,4 +49,38 @@ export async function getLikeStatus(imageId: string, userName: string) {
     console.error('Get likes error:', error);
     return { success: false, error: 'Failed to get like status' };
   }
+}
+
+export async function getBatchLikeStatus(imageIds: string[], userName: string) {
+  try {
+    // Create arrays of promises for both likes count and user like status
+    const likesCountPromises = imageIds.map(id => 
+      redis.get<number>(`image:${id}:likes`).then(count => count || 0)
+    );
+    
+    const userLikePromises = imageIds.map(id => 
+      redis.sismember(`image:${id}:likedBy`, userName).then(result => Boolean(result))
+    );
+
+    // Execute all promises in parallel
+    const [likeCounts, userLikes] = await Promise.all([
+      Promise.all(likesCountPromises),
+      Promise.all(userLikePromises)
+    ]);
+
+    // Combine results into a map
+    const likeStatusMap = imageIds.reduce((acc, id, index) => {
+      acc[id] = {
+        success: true,
+        liked: userLikes[index],
+        count: likeCounts[index]
+      };
+      return acc;
+    }, {} as Record<string, { success: true; liked: boolean; count: number; }>);
+
+    return likeStatusMap;
+  } catch (error) {
+    console.error('Batch get likes error:', error);
+    return {};
+  }
 } 
