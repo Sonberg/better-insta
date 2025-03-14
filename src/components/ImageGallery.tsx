@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { fetchImages } from '../services/imageService';
-import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { fetchImages } from "../services/imageService";
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 
 export default function ImageGallery() {
   const observerTarget = useRef<HTMLDivElement>(null);
@@ -15,9 +15,9 @@ export default function ImageGallery() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-    error
+    error,
   } = useInfiniteQuery({
-    queryKey: ['images'],
+    queryKey: ["images"],
     queryFn: ({ pageParam = 1 }) => fetchImages(pageParam),
     getNextPageParam: (lastPage) => {
       if (lastPage.pagination.has_more) {
@@ -29,7 +29,7 @@ export default function ImageGallery() {
   });
 
   const handleImageLoad = (imageId: string) => {
-    setLoadedImages(prev => new Set([...prev, imageId]));
+    setLoadedImages((prev) => new Set([...prev, imageId]));
   };
 
   // Intersection Observer setup
@@ -56,27 +56,25 @@ export default function ImageGallery() {
 
   if (error) {
     return (
-      <div className="text-center text-red-500 p-4">
-        Failed to load images
-      </div>
+      <div className="text-center text-red-500 p-4">Failed to load images</div>
     );
   }
 
   // Flatten all pages of images into a single array
-  const allImages = data?.pages.flatMap(page => page.images) ?? [];
+  const allImages = data?.pages.flatMap((page) => page.images) ?? [];
 
   return (
     <>
       <div className="columns-1 md:columns-2 lg:columns-3 gap-4 p-4 space-y-4">
         {allImages.map((image, index) => (
-          <div 
-            key={image.id} 
+          <div
+            key={image.id}
             className={`break-inside-avoid mb-4 transition-opacity duration-300 ${
-              loadedImages.has(image.id) ? 'opacity-100' : 'opacity-0'
+              loadedImages.has(image.id) ? "opacity-100" : "opacity-0"
             }`}
-            style={{ minHeight: loadedImages.has(image.id) ? 'auto' : '300px' }}
+            style={{ minHeight: loadedImages.has(image.id) ? "auto" : "300px" }}
           >
-            <div className="rounded-lg border bg-background shadow-sm overflow-hidden">
+            <div className="bg-background shadow-sm overflow-hidden">
               <div className="relative w-full">
                 <Image
                   src={image.gallery_url}
@@ -89,15 +87,17 @@ export default function ImageGallery() {
                   onLoad={() => handleImageLoad(image.id)}
                   className="w-full"
                   style={{
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'cover',
+                    width: "100%",
+                    height: "auto",
+                    objectFit: "cover",
                   }}
                 />
               </div>
               <div className="p-4 flex flex-col gap-1">
                 <p className="text-sm font-medium">{image.description}</p>
-                <p className="text-xs text-muted-foreground">Uploaded by {image.uploaded_by}</p>
+                <p className="text-xs text-muted-foreground">
+                  Uploaded by {image.uploaded_by}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(image.created_at).toLocaleDateString()}
                 </p>
@@ -106,7 +106,7 @@ export default function ImageGallery() {
           </div>
         ))}
       </div>
-      
+
       {/* Loading indicator and observer target */}
       <div ref={observerTarget} className="w-full py-8 flex justify-center">
         {isFetchingNextPage && (
@@ -115,4 +115,4 @@ export default function ImageGallery() {
       </div>
     </>
   );
-} 
+}
