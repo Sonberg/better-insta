@@ -9,6 +9,7 @@ import { deleteImage } from '@/app/actions/images';
 import { Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { useConfetti } from '@/hooks/useConfetti';
 
 interface ImageData {
   id: string;
@@ -40,6 +41,16 @@ interface LikeRecord {
   created_at: string;
 }
 
+// Type guard to check if an object is a LikeRecord
+function isLikeRecord(obj: unknown): obj is LikeRecord {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'image_id' in obj &&
+    'user_name' in obj
+  );
+}
+
 export default function ImageGallery() {
   const { ref, inView } = useInView({
     threshold: 0.1,
@@ -47,6 +58,8 @@ export default function ImageGallery() {
   });
   const userName = useRef<string | null>(null);
   const queryClient = useQueryClient();
+  const { showConfetti } = useConfetti();
+  const imageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     userName.current = localStorage.getItem('userName');
@@ -62,15 +75,27 @@ export default function ImageGallery() {
           table: 'likes',
         },
         async (payload: RealtimePostgresChangesPayload<LikeRecord>) => {
-          const record = payload.new || payload.old;
-          if (!record) return;
+          // Only show confetti for new likes, not unlikes
+          if (payload.eventType === 'INSERT' && isLikeRecord(payload.new)) {
+            // Don't show confetti for our own likes (those are handled in the LikeButton)
+            if (payload.new.user_name === userName.current) return;
 
-          const imageId = (record as LikeRecord).image_id;
-          if (!imageId) return;
+            // Find the image element and show confetti from its position
+            const imageElement = imageRefs.current.get(payload.new.image_id);
+            if (imageElement) {
+              const rect = imageElement.getBoundingClientRect();
+              const x = rect.left + rect.width / 2;
+              const y = rect.top + rect.height / 2;
+              showConfetti(x, y);
+            }
+          }
+
+          const record = payload.new || payload.old;
+          if (!isLikeRecord(record)) return;
 
           // Fetch updated like status for the affected image
           const response = await fetch(
-            `/api/likes?ids=${imageId}&userName=${encodeURIComponent(userName.current || '')}`
+            `/api/likes?ids=${record.image_id}&userName=${encodeURIComponent(userName.current || '')}`
           );
           
           if (!response.ok) return;
@@ -88,8 +113,8 @@ export default function ImageGallery() {
                 pages: oldData.pages.map((page) => ({
                   ...page,
                   images: page.images.map((image) => {
-                    if (image.id === imageId) {
-                      const newStatus = likeStatusMap[imageId];
+                    if (image.id === record.image_id) {
+                      const newStatus = likeStatusMap[record.image_id];
                       return {
                         ...image,
                         likes: {
@@ -110,8 +135,9 @@ export default function ImageGallery() {
 
     return () => {
       subscription.unsubscribe();
+      imageRefs.current.clear();
     };
-  }, [queryClient]);
+  }, [queryClient, showConfetti]);
 
   const handleDelete = useCallback(async (imageId: string) => {
     if (!confirm('Are you sure you want to delete this image?')) {
@@ -195,7 +221,17 @@ export default function ImageGallery() {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
       {data.pages.map((page, pageIndex) =>
         page.images.map((image) => (
-          <div key={image.id} className="group relative aspect-square bg-gray-100 overflow-hidden">
+          <div 
+            key={image.id} 
+            className="group relative aspect-square bg-gray-100 overflow-hidden"
+            ref={(el) => {
+              if (el) {
+                imageRefs.current.set(image.id, el);
+              } else {
+                imageRefs.current.delete(image.id);
+              }
+            }}
+          >
             <Image
               src={image.gallery_url}
               alt={image.description || 'Uploaded image'}
