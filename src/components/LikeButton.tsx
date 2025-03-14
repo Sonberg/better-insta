@@ -95,10 +95,10 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
     <button
       ref={buttonRef}
       onClick={handleClick}
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 cursor-pointer
         ${optimisticLiked
-          ? 'bg-red-500 hover:bg-red-600 text-white'
-          : 'bg-white/90 hover:bg-white text-gray-700'
+          ? 'bg-red-500/60 hover:bg-red-600 text-white'
+          : 'bg-white/40 hover:bg-white text-gray-700'
         }`}
       aria-label={optimisticLiked ? 'Unlike image' : 'Like image'}
     >
