@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get("limit") || "6";
 
     const response = await fetch(
-      `${SUPABASE_API_URL}/list-images?page=${page}&limit=${limit}`,
+      `${SUPABASE_API_URL}/list-images?page=${page}&limit=${limit}&sort_by=created_at`,
       {
         method: "GET",
         headers: {
