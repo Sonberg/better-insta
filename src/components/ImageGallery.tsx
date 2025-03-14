@@ -39,7 +39,7 @@ export default function ImageGallery() {
   });
   const userName = useRef<string | null>(null);
   const queryClient = useQueryClient();
-  const pollingIntervalRef = useRef<NodeJS.Timeout>();
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const POLLING_INTERVAL = 2000; // 2 seconds
 
   useEffect(() => {
@@ -58,7 +58,15 @@ export default function ImageGallery() {
       if (visibleImageIds.length === 0) return;
 
       try {
-        const likeStatusMap = await getBatchLikeStatus(visibleImageIds, userName.current);
+        const response = await fetch(
+          `/api/likes/poll?ids=${visibleImageIds.join(',')}&userName=${encodeURIComponent(userName.current)}`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch like updates');
+        }
+
+        const likeStatusMap = await response.json();
         
         queryClient.setQueriesData<InfiniteData<ApiResponse>>(
           { queryKey: ['images'] },
@@ -92,10 +100,30 @@ export default function ImageGallery() {
       }
     };
 
-    // Start polling
-    pollingIntervalRef.current = setInterval(pollLikeUpdates, POLLING_INTERVAL);
+    // Start polling when the component mounts
+    const startPolling = () => {
+      pollLikeUpdates(); // Initial poll
+      pollingIntervalRef.current = setInterval(pollLikeUpdates, POLLING_INTERVAL);
+    };
+
+    // Stop polling when the tab is hidden
+    const handleVisibilityChange = () => {
+      if (document.hidden && pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      } else if (!document.hidden && !pollingIntervalRef.current) {
+        startPolling();
+      }
+    };
+
+    // Set up visibility change listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Start initial polling
+    startPolling();
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
