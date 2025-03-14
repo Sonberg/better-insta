@@ -14,13 +14,31 @@ export async function likeImage(imageId: string, userName: string) {
     if (hasLiked) {
       // Unlike: Remove user from set and decrease count
       await redis.srem(userLikeKey, userName);
-      await redis.decr(key);
+      const newCount = await redis.decr(key);
+      
+      // Publish update
+      await redis.publish('like-updates', JSON.stringify({
+        imageId,
+        userName,
+        liked: false,
+        count: newCount
+      }));
+
       revalidatePath('/');
       return { success: true, liked: false };
     } else {
       // Like: Add user to set and increase count
       await redis.sadd(userLikeKey, userName);
-      await redis.incr(key);
+      const newCount = await redis.incr(key);
+      
+      // Publish update
+      await redis.publish('like-updates', JSON.stringify({
+        imageId,
+        userName,
+        liked: true,
+        count: newCount
+      }));
+
       revalidatePath('/');
       return { success: true, liked: true };
     }

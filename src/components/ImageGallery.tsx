@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import Image from 'next/image';
 import { useInView } from 'react-intersection-observer';
 import LikeButton from './LikeButton';
@@ -38,10 +38,69 @@ export default function ImageGallery() {
     rootMargin: '400px 0px',
   });
   const userName = useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const pollingIntervalRef = useRef<NodeJS.Timeout>();
+  const POLLING_INTERVAL = 2000; // 2 seconds
 
   useEffect(() => {
     userName.current = localStorage.getItem('userName');
-  }, []);
+
+    // Set up polling for real-time updates
+    const pollLikeUpdates = async () => {
+      if (!userName.current) return;
+
+      const visibleImageIds = queryClient
+        .getQueriesData<InfiniteData<ApiResponse>>({ queryKey: ['images'] })
+        .flatMap(([, data]) => 
+          data?.pages.flatMap(page => page.images.map(img => img.id)) ?? []
+        );
+
+      if (visibleImageIds.length === 0) return;
+
+      try {
+        const likeStatusMap = await getBatchLikeStatus(visibleImageIds, userName.current);
+        
+        queryClient.setQueriesData<InfiniteData<ApiResponse>>(
+          { queryKey: ['images'] },
+          (oldData) => {
+            if (!oldData) return oldData;
+            
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page) => ({
+                ...page,
+                images: page.images.map((image) => {
+                  const newStatus = likeStatusMap[image.id];
+                  if (newStatus) {
+                    return {
+                      ...image,
+                      likes: {
+                        ...image.likes,
+                        count: newStatus.count,
+                        liked: newStatus.liked ? 1 : 0
+                      }
+                    };
+                  }
+                  return image;
+                })
+              }))
+            };
+          }
+        );
+      } catch (error) {
+        console.error('Error polling like updates:', error);
+      }
+    };
+
+    // Start polling
+    pollingIntervalRef.current = setInterval(pollLikeUpdates, POLLING_INTERVAL);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [queryClient]);
 
   const handleDelete = useCallback(async (imageId: string) => {
     if (!confirm('Are you sure you want to delete this image?')) {
