@@ -65,7 +65,7 @@ export default function ImageGallery() {
           const record = payload.new || payload.old;
           if (!record) return;
 
-          const imageId = record.image_id;
+          const imageId = (record as LikeRecord).image_id;
           if (!imageId) return;
 
           // Fetch updated like status for the affected image
