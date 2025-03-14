@@ -2,7 +2,6 @@
 
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
-import { useConfetti } from '@/hooks/useConfetti';
 import { useQueryClient, InfiniteData } from '@tanstack/react-query';
 import type { ImageData, ApiResponse } from '@/types';
 
@@ -17,7 +16,6 @@ interface LikeButtonProps {
 export default function LikeButton({ imageId, initialLiked, initialCount, userName, onHeartRef }: LikeButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const heartIconRef = useRef<SVGSVGElement>(null);
-  const { showConfetti } = useConfetti();
   const queryClient = useQueryClient();
   const [optimisticLiked, setOptimisticLiked] = useState(initialLiked);
   const [optimisticCount, setOptimisticCount] = useState(initialCount);
@@ -39,14 +37,6 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
     const newCount = optimisticCount + (newLiked ? 1 : -1);
     setOptimisticLiked(newLiked);
     setOptimisticCount(newCount);
-
-    // Show confetti immediately for likes
-    if (newLiked && heartIconRef.current) {
-      const rect = heartIconRef.current.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-      showConfetti(x, y);
-    }
 
     try {
       const response = await fetch('/api/likes', {
@@ -99,7 +89,7 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
       console.error('Failed to update like:', error);
       // UI has already been reverted above in case of failure
     }
-  }, [imageId, userName, optimisticLiked, optimisticCount, initialLiked, initialCount, showConfetti, queryClient]);
+  }, [imageId, userName, optimisticLiked, optimisticCount, initialLiked, initialCount, queryClient]);
 
   return (
     <button
