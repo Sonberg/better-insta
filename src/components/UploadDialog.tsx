@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +16,12 @@ interface UploadDialogProps {
   onUpload: (file: File, description: string) => Promise<void>;
 }
 
-export default function UploadDialog({ isOpen, onClose, onUpload }: UploadDialogProps) {
-  const [description, setDescription] = useState('');
+export default function UploadDialog({
+  isOpen,
+  onClose,
+  onUpload,
+}: UploadDialogProps) {
+  const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,8 +30,10 @@ export default function UploadDialog({ isOpen, onClose, onUpload }: UploadDialog
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      // Set default description from filename
-      setDescription(file.name.split('.')[0]);
+
+      if (!description) {
+        setDescription(file.name.split(".")[0]);
+      }
     }
   };
 
@@ -40,9 +46,9 @@ export default function UploadDialog({ isOpen, onClose, onUpload }: UploadDialog
       await onUpload(selectedFile, description);
       // Reset form
       setSelectedFile(null);
-      setDescription('');
+      setDescription("");
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
       onClose();
     } finally {
@@ -61,9 +67,7 @@ export default function UploadDialog({ isOpen, onClose, onUpload }: UploadDialog
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Image
-            </label>
+            <label className="block text-sm font-medium mb-1">Image</label>
             <input
               ref={fileInputRef}
               type="file"
@@ -108,11 +112,11 @@ export default function UploadDialog({ isOpen, onClose, onUpload }: UploadDialog
               className="ml-3 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isUploading || !selectedFile}
             >
-              {isUploading ? 'Uploading...' : 'Upload'}
+              {isUploading ? "Uploading..." : "Upload"}
             </button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
-} 
+}

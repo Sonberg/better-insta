@@ -1,9 +1,11 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import ImageGallery from './ImageGallery';
 import FloatingUploadButton from './FloatingUploadButton';
-import { useState } from 'react';
+import UserNameDialog from './UserNameDialog';
+import { uploadImage } from '@/app/actions';
 
 interface UploadError {
   message: string;
@@ -13,6 +15,14 @@ interface UploadError {
 export default function UploadGallery() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<UploadError | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedName = localStorage.getItem('userName');
+    if (storedName) {
+      setUserName(storedName);
+    }
+  }, []);
 
   const handleUpload = async (file: File, description: string) => {
     try {
@@ -32,23 +42,16 @@ export default function UploadGallery() {
       
       // Add metadata
       const metadata = {
-        description: description,
-        uploadedBy: 'user' // You might want to replace this with actual user info
+        description,
+        uploadedBy: userName
       };
       formData.append('metadata', JSON.stringify(metadata));
 
-      const response = await fetch('https://wkuhfuofhpjuwilhhtnj.supabase.co/functions/v1/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
+      const result = await uploadImage(formData);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || 'Upload failed');
+      if (!result.success) {
+        throw new Error(result.error);
       }
-
-      const result = await response.json();
-      console.log('Upload successful:', result);
 
       // Clear any existing error
       setError(null);
@@ -63,6 +66,10 @@ export default function UploadGallery() {
       });
     }
   };
+
+  if (!userName) {
+    return <UserNameDialog onNameSubmit={setUserName} />;
+  }
 
   return (
     <div className="relative">
