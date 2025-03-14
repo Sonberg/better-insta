@@ -6,8 +6,9 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const page = searchParams.get('page') || '1';
+    const limit = searchParams.get('limit') || '9';
 
-    const response = await fetch(`${SUPABASE_API_URL}/list-images?page=${page}`, {
+    const response = await fetch(`${SUPABASE_API_URL}/list-images?page=${page}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
