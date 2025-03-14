@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import { Heart } from 'lucide-react';
-import { likeImage } from '@/app/actions/likes';
 import { useConfetti } from '@/hooks/useConfetti';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface LikeButtonProps {
   imageId: string;
@@ -12,62 +12,63 @@ interface LikeButtonProps {
   userName: string;
 }
 
-export default function LikeButton({ 
-  imageId, 
-  initialLiked, 
-  initialCount, 
-  userName 
-}: LikeButtonProps) {
-  const [liked, setLiked] = useState(initialLiked);
-  const [count, setCount] = useState(initialCount);
-  const [isLoading, setIsLoading] = useState(false);
+export default function LikeButton({ imageId, initialLiked, initialCount, userName }: LikeButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { showConfetti } = useConfetti();
+  const queryClient = useQueryClient();
 
   const handleClick = useCallback(async () => {
-    if (!userName || isLoading) return;
+    if (!userName) {
+      alert('Please set your username first');
+      return;
+    }
 
-    setIsLoading(true);
     try {
-      const result = await likeImage(imageId, userName);
-      if (result.success) {
-        const newLiked = Boolean(result.liked);
-        setLiked(newLiked);
-        setCount(prev => newLiked ? prev + 1 : prev - 1);
+      const response = await fetch('/api/likes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageId,
+          userName,
+        }),
+      });
 
+      const result = await response.json();
+
+      if (result.success) {
         // Show confetti only when liking (not unliking)
-        if (newLiked && buttonRef.current) {
+        if (!initialLiked && buttonRef.current) {
           const rect = buttonRef.current.getBoundingClientRect();
           const x = rect.left + rect.width / 2;
           const y = rect.top + rect.height / 2;
           showConfetti(x, y);
         }
+
+        // Invalidate the query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: ['images'] });
       }
     } catch (error) {
-      console.error('Error updating like:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to update like:', error);
     }
-  }, [imageId, userName, isLoading, showConfetti]);
+  }, [imageId, userName, initialLiked, showConfetti, queryClient]);
 
   return (
     <button
       ref={buttonRef}
       onClick={handleClick}
-      disabled={!userName || isLoading}
       className={`p-2 rounded-full transition-colors ${
-        liked
-          ? 'bg-red-500 text-white hover:bg-red-600'
-          : 'bg-white text-gray-600 hover:bg-gray-100'
-      } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-      aria-label={liked ? 'Unlike image' : 'Like image'}
+        initialLiked
+          ? 'bg-red-500 hover:bg-red-600'
+          : 'bg-white/90 hover:bg-white'
+      }`}
+      aria-label={initialLiked ? 'Unlike image' : 'Like image'}
     >
       <Heart
-        className={`w-4 h-4 ${liked ? 'fill-current' : ''} ${
-          isLoading ? 'animate-pulse' : ''
-        }`}
+        className={`w-4 h-4 ${initialLiked ? 'text-white fill-current' : 'text-gray-700'}`}
       />
-      <span className="sr-only">{count} likes</span>
+      <span className="sr-only">{initialCount} likes</span>
     </button>
   );
 } 

@@ -1,46 +1,63 @@
-import { redis } from '@/lib/redis';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
-  const imageIds = request.nextUrl.searchParams.get('ids')?.split(',') || [];
-  const userName = request.nextUrl.searchParams.get('userName') || '';
+  const { searchParams } = new URL(request.url);
+  const ids = searchParams.get('ids')?.split(',') || [];
+  const userName = searchParams.get('userName') || '';
 
-  if (imageIds.length === 0) {
-    return Response.json({ error: 'No image IDs provided' }, { status: 400 });
+  if (ids.length === 0) {
+    return NextResponse.json(
+      { success: false, error: 'No image IDs provided' },
+      { status: 400 }
+    );
   }
 
   try {
-    // Create arrays of promises for both likes count and user like status
-    const likesCountPromises = imageIds.map(id => 
-      redis.get<number>(`image:${id}:likes`).then(count => count || 0)
-    );
-    
-    const userLikePromises = imageIds.map(id => 
-      redis.sismember(`image:${id}:likedBy`, userName).then(result => Boolean(result))
-    );
+    // Get like counts for all images
+    const { data: likeCounts } = await supabase
+      .from('likes')
+      .select('image_id')
+      .in('image_id', ids);
 
-    // Execute all promises in parallel
-    const [likeCounts, userLikes] = await Promise.all([
-      Promise.all(likesCountPromises),
-      Promise.all(userLikePromises)
-    ]);
+    // Get user's likes
+    const { data: userLikes } = await supabase
+      .from('likes')
+      .select('image_id')
+      .in('image_id', ids)
+      .eq('user_name', userName);
+
+    // Create a map of image_id to like count
+    const countMap = ids.reduce((acc, id) => {
+      acc[id] = (likeCounts || []).filter(like => like.image_id === id).length;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Create a map of image_id to liked status
+    const likedMap = (userLikes || []).reduce((acc, like) => {
+      acc[like.image_id] = true;
+      return acc;
+    }, {} as Record<string, boolean>);
 
     // Combine results into a map
-    const likeStatusMap = imageIds.reduce((acc, id, index) => {
+    const likeStatusMap = ids.reduce((acc, id) => {
       acc[id] = {
         success: true,
-        liked: userLikes[index],
-        count: likeCounts[index]
+        liked: Boolean(likedMap[id]),
+        count: countMap[id] || 0
       };
       return acc;
     }, {} as Record<string, { success: true; liked: boolean; count: number; }>);
 
-    return Response.json(likeStatusMap);
+    return NextResponse.json(likeStatusMap);
   } catch (error) {
     console.error('Error fetching like status:', error);
-    return Response.json({ error: 'Failed to fetch like status' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch like status' },
+      { status: 500 }
+    );
   }
 } 

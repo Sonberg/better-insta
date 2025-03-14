@@ -5,7 +5,6 @@ import { useInfiniteQuery, useQueryClient, InfiniteData } from '@tanstack/react-
 import Image from 'next/image';
 import { useInView } from 'react-intersection-observer';
 import LikeButton from './LikeButton';
-import { getBatchLikeStatus } from '@/app/actions/likes';
 import { deleteImage } from '@/app/actions/images';
 import { Trash2 } from 'lucide-react';
 
@@ -147,9 +146,12 @@ export default function ImageGallery() {
     const response = await fetch(`/api/images?page=${pageParam}`);
     const data = await response.json();
     
-    // Batch fetch likes for all images on the page
+    // Get initial like status
     const imageIds = data.images.map((image: ImageData) => image.id);
-    const likeStatusMap = await getBatchLikeStatus(imageIds, userName.current || '');
+    const likeResponse = await fetch(
+      `/api/likes/poll?ids=${imageIds.join(',')}&userName=${encodeURIComponent(userName.current || '')}`
+    );
+    const likeStatusMap = await likeResponse.json();
     
     // Merge like status with image data
     const imagesWithLikes = data.images.map((image: ImageData) => {
@@ -220,6 +222,7 @@ export default function ImageGallery() {
             />
             <div className="absolute top-4 right-4 z-10 flex gap-2">
               <LikeButton
+                key={`${image.id}-${image.likes?.count}-${image.likes?.liked}`}
                 imageId={image.id}
                 initialLiked={Boolean(image.likes?.liked)}
                 initialCount={image.likes?.count || 0}
