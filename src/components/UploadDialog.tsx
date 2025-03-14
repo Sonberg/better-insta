@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,18 +14,53 @@ interface UploadDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onUpload: (file: File, description: string) => Promise<void>;
+  initialFile?: File | null;
 }
 
 export default function UploadDialog({
   isOpen,
   onClose,
   onUpload,
+  initialFile = null,
 }: UploadDialogProps) {
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle initialFile when dialog opens
+  useEffect(() => {
+    if (isOpen && initialFile) {
+      // Validate file size (6MB)
+      const maxSize = 6 * 1024 * 1024;
+      if (initialFile.size > maxSize) {
+        setError('File size exceeds 6MB limit');
+        return;
+      }
+
+      // Validate file type
+      if (!initialFile.type.startsWith('image/')) {
+        setError('Only image files are allowed');
+        return;
+      }
+
+      setSelectedFile(initialFile);
+      setDescription(initialFile.name.split(".")[0]);
+    }
+  }, [isOpen, initialFile]);
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedFile(null);
+      setDescription("");
+      setError(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }, [isOpen]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
