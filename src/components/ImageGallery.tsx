@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import { useInView } from 'react-intersection-observer';
 import LikeButton from './LikeButton';
 import { getBatchLikeStatus } from '@/app/actions/likes';
+import { deleteImage } from '@/app/actions/images';
+import { Trash2 } from 'lucide-react';
 
 interface ImageData {
   id: string;
@@ -39,6 +41,19 @@ export default function ImageGallery() {
 
   useEffect(() => {
     userName.current = localStorage.getItem('userName');
+  }, []);
+
+  const handleDelete = useCallback(async (imageId: string) => {
+    if (!confirm('Are you sure you want to delete this image?')) {
+      return;
+    }
+
+    const result = await deleteImage(imageId);
+    if (result.success) {
+      // The revalidatePath in the server action will trigger a refetch
+    } else {
+      alert('Failed to delete image');
+    }
   }, []);
 
   const fetchImages = async ({ pageParam = 1 }): Promise<ApiResponse> => {
@@ -116,13 +131,22 @@ export default function ImageGallery() {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority={pageIndex === 0}
             />
-            <div className="absolute top-4 right-4 z-10">
+            <div className="absolute top-4 right-4 z-10 flex gap-2">
               <LikeButton
                 imageId={image.id}
                 initialLiked={Boolean(image.likes?.liked)}
                 initialCount={image.likes?.count || 0}
                 userName={userName.current || ''}
               />
+              {userName.current === image.uploaded_by && (
+                <button
+                  onClick={() => handleDelete(image.id)}
+                  className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors"
+                  aria-label="Delete image"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <div className="absolute bottom-4 left-4 right-4 text-white">
