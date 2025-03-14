@@ -1,9 +1,10 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useConfetti } from '@/hooks/useConfetti';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, InfiniteData } from '@tanstack/react-query';
+import type { ImageData, ApiResponse } from '@/types';
 
 interface LikeButtonProps {
   imageId: string;
@@ -16,11 +17,27 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { showConfetti } = useConfetti();
   const queryClient = useQueryClient();
+  const [optimisticLiked, setOptimisticLiked] = useState(initialLiked);
+  const [optimisticCount, setOptimisticCount] = useState(initialCount);
 
   const handleClick = useCallback(async () => {
     if (!userName) {
       alert('Please set your username first');
       return;
+    }
+
+    // Optimistically update UI
+    const newLiked = !optimisticLiked;
+    const newCount = optimisticCount + (newLiked ? 1 : -1);
+    setOptimisticLiked(newLiked);
+    setOptimisticCount(newCount);
+
+    // Show confetti immediately for likes
+    if (newLiked && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      showConfetti(x, y);
     }
 
     try {
@@ -37,22 +54,44 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
 
       const result = await response.json();
 
-      if (result.success) {
-        // Show confetti only when liking (not unliking)
-        if (!initialLiked && buttonRef.current) {
-          const rect = buttonRef.current.getBoundingClientRect();
-          const x = rect.left + rect.width / 2;
-          const y = rect.top + rect.height / 2;
-          showConfetti(x, y);
-        }
-
-        // Invalidate the query to trigger a refetch
-        queryClient.invalidateQueries({ queryKey: ['images'] });
+      if (!result.success) {
+        // Revert optimistic update on failure
+        setOptimisticLiked(initialLiked);
+        setOptimisticCount(initialCount);
+        throw new Error('Failed to update like');
       }
+
+      // Update the cache with the server response
+      queryClient.setQueriesData<InfiniteData<ApiResponse>>(
+        { queryKey: ['images'] },
+        (oldData) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              images: page.images.map((image: ImageData) => {
+                if (image.id === imageId) {
+                  return {
+                    ...image,
+                    likes: {
+                      count: result.count,
+                      liked: result.liked ? 1 : 0
+                    }
+                  };
+                }
+                return image;
+              })
+            }))
+          };
+        }
+      );
     } catch (error) {
       console.error('Failed to update like:', error);
+      // UI has already been reverted above in case of failure
     }
-  }, [imageId, userName, initialLiked, showConfetti, queryClient]);
+  }, [imageId, userName, optimisticLiked, optimisticCount, initialLiked, initialCount, showConfetti, queryClient]);
 
   return (
     <div className="flex items-center gap-2">
@@ -60,19 +99,19 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
         ref={buttonRef}
         onClick={handleClick}
         className={`p-2 rounded-full transition-colors ${
-          initialLiked
+          optimisticLiked
             ? 'bg-red-500 hover:bg-red-600'
             : 'bg-white/90 hover:bg-white'
         }`}
-        aria-label={initialLiked ? 'Unlike image' : 'Like image'}
+        aria-label={optimisticLiked ? 'Unlike image' : 'Like image'}
       >
         <Heart
-          className={`w-4 h-4 ${initialLiked ? 'text-white fill-current' : 'text-gray-700'}`}
+          className={`w-4 h-4 ${optimisticLiked ? 'text-white fill-current' : 'text-gray-700'}`}
         />
-        <span className="sr-only">{initialCount} likes</span>
+        <span className="sr-only">{optimisticCount} likes</span>
       </button>
       <span className="text-sm font-medium text-white bg-black/50 px-2 py-1 rounded-full">
-        {initialCount}
+        {optimisticCount}
       </span>
     </div>
   );
