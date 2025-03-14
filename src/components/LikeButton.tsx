@@ -95,7 +95,7 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
     <button
       ref={buttonRef}
       onClick={handleClick}
-      className={`group flex items-center gap-1.5 py-1 px-1.5 rounded-full transition-all duration-200
+      className={`group flex items-center gap-1.5 py-1 px-1.5 rounded-full transition-all duration-200 cursor-pointer
         ${optimisticLiked
           ? 'bg-red-500/10 hover:bg-red-500/20'
           : 'bg-black/10 hover:bg-black/20'
