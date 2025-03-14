@@ -46,3 +46,5 @@ You are an expert senior developer specializing in modern web development with d
 ## Final Note
 - Stick to these guidelines unless the user overrides them with specific instructions.
 - If generating a new file, ensure it aligns with Next.js conventions and the existing project structure.
+
+- Dont use PowerShell

@@ -14,7 +14,7 @@ export default function UploadGallery() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<UploadError | null>(null);
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (file: File, description: string) => {
     try {
       // Validate file size (max 10MB)
       const maxSize = 10 * 1024 * 1024; // 10MB in bytes
@@ -32,7 +32,7 @@ export default function UploadGallery() {
       
       // Add metadata
       const metadata = {
-        description: file.name.split('.')[0], // Use filename as default description
+        description: description,
         uploadedBy: 'user' // You might want to replace this with actual user info
       };
       formData.append('metadata', JSON.stringify(metadata));
