@@ -2,16 +2,24 @@
 
 import ImageGallery from '@/components/ImageGallery';
 import FloatingUploadButton from '@/components/FloatingUploadButton';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Home() {
+  const queryClient = useQueryClient();
+
   const handleUpload = async (file: File) => {
     try {
-      // Create FormData
       const formData = new FormData();
       formData.append('image', file);
+      
+      // Add metadata
+      const metadata = {
+        description: file.name.split('.')[0], // Use filename as default description
+        uploadedBy: 'user' // You might want to replace this with actual user info
+      };
+      formData.append('metadata', JSON.stringify(metadata));
 
-      // Send the file to your API endpoint
-      const response = await fetch('/api/upload', {
+      const response = await fetch('https://wkuhfuofhpjuwilhhtnj.supabase.co/functions/v1/upload-image', {
         method: 'POST',
         body: formData,
       });
@@ -20,12 +28,14 @@ export default function Home() {
         throw new Error('Upload failed');
       }
 
-      // Handle successful upload
-      // You might want to refresh the image gallery or show a success message
-      console.log('Upload successful');
+      const result = await response.json();
+      console.log('Upload successful:', result);
+
+      // Invalidate and refetch images query to show new image
+      await queryClient.invalidateQueries({ queryKey: ['images'] });
     } catch (error) {
       console.error('Upload error:', error);
-      // Handle error (show error message to user)
+      // You might want to add proper error handling/notification here
     }
   };
 

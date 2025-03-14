@@ -3,16 +3,24 @@
 import { useState } from 'react';
 
 interface FloatingUploadButtonProps {
-  onUpload: (file: File) => void;
+  onUpload: (file: File) => Promise<void>;
 }
 
 export default function FloatingUploadButton({ onUpload }: FloatingUploadButtonProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      onUpload(file);
+      try {
+        setIsUploading(true);
+        await onUpload(file);
+      } finally {
+        setIsUploading(false);
+        // Reset the input value to allow uploading the same file again
+        event.target.value = '';
+      }
     }
   };
 
@@ -26,13 +34,18 @@ export default function FloatingUploadButton({ onUpload }: FloatingUploadButtonP
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      onUpload(file);
+      try {
+        setIsUploading(true);
+        await onUpload(file);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -47,8 +60,9 @@ export default function FloatingUploadButton({ onUpload }: FloatingUploadButtonP
     >
       <label
         htmlFor="file-upload"
-        className={`flex items-center justify-center w-14 h-14 bg-blue-500 hover:bg-blue-600 
-          rounded-full shadow-lg cursor-pointer transition-colors duration-200
+        className={`flex items-center justify-center w-14 h-14 
+          ${isUploading ? 'bg-blue-400 cursor-wait' : 'bg-blue-500 hover:bg-blue-600 cursor-pointer'}
+          rounded-full shadow-lg transition-colors duration-200
           ${isDragging ? 'ring-4 ring-blue-300' : ''}`}
       >
         <input
@@ -57,21 +71,26 @@ export default function FloatingUploadButton({ onUpload }: FloatingUploadButtonP
           className="hidden"
           accept="image/*"
           onChange={handleFileChange}
+          disabled={isUploading}
         />
-        <svg
-          className="w-6 h-6 text-white"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-          />
-        </svg>
+        {isUploading ? (
+          <div className="w-6 h-6 border-2 border-white rounded-full border-t-transparent animate-spin" />
+        ) : (
+          <svg
+            className="w-6 h-6 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
+          </svg>
+        )}
       </label>
     </div>
   );
