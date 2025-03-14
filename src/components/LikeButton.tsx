@@ -15,6 +15,7 @@ interface LikeButtonProps {
 
 export default function LikeButton({ imageId, initialLiked, initialCount, userName }: LikeButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const heartIconRef = useRef<SVGSVGElement>(null);
   const { showConfetti } = useConfetti();
   const queryClient = useQueryClient();
   const [optimisticLiked, setOptimisticLiked] = useState(initialLiked);
@@ -33,8 +34,8 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
     setOptimisticCount(newCount);
 
     // Show confetti immediately for likes
-    if (newLiked && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
+    if (newLiked && heartIconRef.current) {
+      const rect = heartIconRef.current.getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
       showConfetti(x, y);
@@ -106,6 +107,7 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
         aria-label={optimisticLiked ? 'Unlike image' : 'Like image'}
       >
         <Heart
+          ref={heartIconRef}
           className={`w-4 h-4 ${optimisticLiked ? 'text-white fill-current' : 'text-gray-700'}`}
         />
         <span className="sr-only">{optimisticCount} likes</span>
