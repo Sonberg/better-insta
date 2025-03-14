@@ -207,7 +207,8 @@ export default function ImageGallery() {
           page.images.map((image) => (
             <div 
               key={image.id} 
-              className="group relative aspect-square bg-gray-100 overflow-hidden"
+              className="group relative aspect-square bg-gray-100 overflow-hidden cursor-pointer"
+              onClick={() => setSelectedImage(image)}
               ref={(el) => {
                 if (el) {
                   imageRefs.current.set(image.id, el);
@@ -224,31 +225,37 @@ export default function ImageGallery() {
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 priority={pageIndex === 0}
               />
-              <div className="absolute top-4 right-4 z-10 flex gap-2">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-all duration-200">
                 <button
-                  onClick={() => setSelectedImage(image)}
-                  className="p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-3 rounded-full bg-black/50 text-white transform scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-200"
                   aria-label="View full image"
                 >
-                  <Expand className="w-4 h-4" />
+                  <Expand className="w-6 h-6" />
                 </button>
-                <LikeButton
-                  key={`${image.id}-${image.likes?.count}-${image.likes?.liked}`}
-                  imageId={image.id}
-                  initialLiked={Boolean(image.likes?.liked)}
-                  initialCount={image.likes?.count || 0}
-                  userName={userName.current || ''}
-                  onHeartRef={(el) => {
-                    if (el) {
-                      heartIconRefs.current.set(image.id, el);
-                    } else {
-                      heartIconRefs.current.delete(image.id);
-                    }
-                  }}
-                />
+              </div>
+              <div className="absolute top-4 right-4 z-10 flex gap-2">
+                <div onClick={(e) => e.stopPropagation()}>
+                  <LikeButton
+                    key={`${image.id}-${image.likes?.count}-${image.likes?.liked}`}
+                    imageId={image.id}
+                    initialLiked={Boolean(image.likes?.liked)}
+                    initialCount={image.likes?.count || 0}
+                    userName={userName.current || ''}
+                    onHeartRef={(el) => {
+                      if (el) {
+                        heartIconRefs.current.set(image.id, el);
+                      } else {
+                        heartIconRefs.current.delete(image.id);
+                      }
+                    }}
+                  />
+                </div>
                 {userName.current === image.uploaded_by && (
                   <button
-                    onClick={() => handleDelete(image.id)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent image dialog from opening
+                      handleDelete(image.id);
+                    }}
                     className="p-2 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors"
                     aria-label="Delete image"
                   >
