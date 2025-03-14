@@ -102,26 +102,21 @@ export default function LikeButton({ imageId, initialLiked, initialCount, userNa
   }, [imageId, userName, optimisticLiked, optimisticCount, initialLiked, initialCount, showConfetti, queryClient]);
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        ref={buttonRef}
-        onClick={handleClick}
-        className={`p-2 rounded-full transition-colors ${
-          optimisticLiked
-            ? 'bg-red-500 hover:bg-red-600'
-            : 'bg-white/90 hover:bg-white'
+    <button
+      ref={buttonRef}
+      onClick={handleClick}
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300
+        ${optimisticLiked
+          ? 'bg-red-500 hover:bg-red-600 text-white'
+          : 'bg-white/90 hover:bg-white text-gray-700'
         }`}
-        aria-label={optimisticLiked ? 'Unlike image' : 'Like image'}
-      >
-        <Heart
-          ref={heartIconRef}
-          className={`w-4 h-4 ${optimisticLiked ? 'text-white fill-current' : 'text-gray-700'}`}
-        />
-        <span className="sr-only">{optimisticCount} likes</span>
-      </button>
-      <span className="text-sm font-medium text-white bg-black/50 px-2 py-1 rounded-full">
-        {optimisticCount}
-      </span>
-    </div>
+      aria-label={optimisticLiked ? 'Unlike image' : 'Like image'}
+    >
+      <Heart
+        ref={heartIconRef}
+        className={`w-4 h-4 ${optimisticLiked ? 'fill-current' : ''}`}
+      />
+      <span className="text-sm font-medium min-w-[1.5rem] bg-red-700 rounded-full text-white">{optimisticCount}</span>
+    </button>
   );
 } 
