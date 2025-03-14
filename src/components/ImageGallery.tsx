@@ -32,11 +32,6 @@ export default function ImageGallery() {
     setLoadedImages(prev => new Set([...prev, imageId]));
   };
 
-  // Reset loaded images when data changes
-  useEffect(() => {
-    setLoadedImages(new Set());
-  }, [data]);
-
   // Intersection Observer setup
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -56,11 +51,7 @@ export default function ImageGallery() {
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return null;
   }
 
   if (error) {
@@ -77,36 +68,40 @@ export default function ImageGallery() {
   return (
     <>
       <div className="columns-1 md:columns-2 lg:columns-3 gap-4 p-4 space-y-4">
-        {allImages.map((image) => (
+        {allImages.map((image, index) => (
           <div 
             key={image.id} 
-            className={`break-inside-avoid mb-4 relative group overflow-hidden transition-opacity duration-300 ${
+            className={`break-inside-avoid mb-4 transition-opacity duration-300 ${
               loadedImages.has(image.id) ? 'opacity-100' : 'opacity-0'
             }`}
+            style={{ minHeight: loadedImages.has(image.id) ? 'auto' : '300px' }}
           >
-            <div className="relative w-full">
-              <Image
-                src={image.gallery_url}
-                alt={image.description}
-                className="w-full"
-                width={800}
-                height={600}
-                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                quality={75}
-                onLoad={() => handleImageLoad(image.id)}
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  objectFit: 'cover',
-                }}
-              />
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4 transform translate-y-full transition-transform duration-300 group-hover:translate-y-0">
-              <p className="text-sm">{image.description}</p>
-              <p className="text-xs opacity-75">Uploaded by {image.uploaded_by}</p>
-              <p className="text-xs opacity-75">
-                {new Date(image.created_at).toLocaleDateString()}
-              </p>
+            <div className="rounded-lg border bg-background shadow-sm overflow-hidden">
+              <div className="relative w-full">
+                <Image
+                  src={image.gallery_url}
+                  alt={image.description}
+                  width={800}
+                  height={600}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  quality={75}
+                  priority={index < 3}
+                  onLoad={() => handleImageLoad(image.id)}
+                  className="w-full"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    objectFit: 'cover',
+                  }}
+                />
+              </div>
+              <div className="p-4 flex flex-col gap-1">
+                <p className="text-sm font-medium">{image.description}</p>
+                <p className="text-xs text-muted-foreground">Uploaded by {image.uploaded_by}</p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(image.created_at).toLocaleDateString()}
+                </p>
+              </div>
             </div>
           </div>
         ))}
