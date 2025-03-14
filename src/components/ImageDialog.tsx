@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import Image from 'next/image';
+import { useState } from 'react';
 
 interface ImageDialogProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ export default function ImageDialog({
   imageUrl,
   description,
 }: ImageDialogProps) {
+  const [isLoading, setIsLoading] = useState(true);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] w-fit p-0 border-none bg-transparent">
@@ -33,13 +36,19 @@ export default function ImageDialog({
           <X className="h-5 w-5" />
         </DialogClose>
         <div className="relative w-[90vw] h-[90vh]">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white" />
+            </div>
+          )}
           <Image
             src={imageUrl}
             alt={description}
             fill
-            className="object-contain"
+            className={`object-contain transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
             sizes="90vw"
             priority
+            onLoadingComplete={() => setIsLoading(false)}
           />
         </div>
       </DialogContent>
