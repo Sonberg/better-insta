@@ -24,13 +24,34 @@ export default function UploadDialog({
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
+    setError(null);
 
+    if (file) {
+      // Validate file size (6MB)
+      const maxSize = 6 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setError('File size exceeds 6MB limit');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Only image files are allowed');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      setSelectedFile(file);
       if (!description) {
         setDescription(file.name.split(".")[0]);
       }
@@ -43,6 +64,7 @@ export default function UploadDialog({
 
     try {
       setIsUploading(true);
+      setError(null);
       await onUpload(selectedFile, description);
       // Reset form
       setSelectedFile(null);
@@ -51,6 +73,8 @@ export default function UploadDialog({
         fileInputRef.current.value = "";
       }
       onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
       setIsUploading(false);
     }
@@ -62,7 +86,7 @@ export default function UploadDialog({
         <DialogHeader>
           <DialogTitle>Upload Image</DialogTitle>
           <DialogDescription>
-            Choose an image to upload and add a description.
+            Choose an image to upload (max 6MB) and add a description.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -83,6 +107,11 @@ export default function UploadDialog({
               disabled={isUploading}
               required
             />
+            {error && (
+              <p className="mt-1 text-sm text-red-600">
+                {error}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">
