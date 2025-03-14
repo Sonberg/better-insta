@@ -102,7 +102,7 @@ export default function ImageGallery() {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
       {data.pages.map((page, pageIndex) =>
         page.images.map((image) => (
-          <div key={image.id} className="relative aspect-square bg-gray-100 overflow-hidden">
+          <div key={image.id} className="group relative aspect-square bg-gray-100 overflow-hidden">
             <Image
               src={image.gallery_url}
               alt={image.description || 'Uploaded image'}
@@ -111,17 +111,19 @@ export default function ImageGallery() {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority={pageIndex === 0}
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50 opacity-0 hover:opacity-100 transition-opacity duration-200">
+            <div className="absolute top-4 right-4 z-10">
+              <LikeButton
+                imageId={image.id}
+                initialLiked={Boolean(image.likes?.liked)}
+                initialCount={image.likes?.count || 0}
+                userName={userName.current || ''}
+              />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <div className="absolute bottom-4 left-4 right-4 text-white">
                 <p className="text-sm mb-2">{image.description || 'No description'}</p>
-                <div className="flex justify-between items-center">
+                <div className="flex items-center">
                   <span className="text-xs">By {image.uploaded_by || 'Anonymous'}</span>
-                  <LikeButton
-                    imageId={image.id}
-                    initialLiked={Boolean(image.likes?.liked)}
-                    initialCount={image.likes?.count || 0}
-                    userName={userName.current || ''}
-                  />
                 </div>
               </div>
             </div>
