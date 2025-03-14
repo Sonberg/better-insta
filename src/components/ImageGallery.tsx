@@ -186,8 +186,8 @@ export default function ImageGallery() {
 
   if (status === 'pending') {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-        {[...Array(6)].map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+        {[...Array(8)].map((_, i) => (
           <div key={i} className="relative aspect-square bg-gray-100 overflow-hidden animate-pulse" />
         ))}
       </div>
@@ -199,7 +199,7 @@ export default function ImageGallery() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
       {data.pages.map((page, pageIndex) =>
         page.images.map((image) => (
           <div 
