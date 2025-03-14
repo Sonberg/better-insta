@@ -7,6 +7,8 @@ import { useInView } from 'react-intersection-observer';
 import LikeButton from './LikeButton';
 import { deleteImage } from '@/app/actions/images';
 import { Trash2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 interface ImageData {
   id: string;
@@ -31,6 +33,13 @@ interface ApiResponse {
   };
 }
 
+interface LikeRecord {
+  id: string;
+  image_id: string;
+  user_name: string;
+  created_at: string;
+}
+
 export default function ImageGallery() {
   const { ref, inView } = useInView({
     threshold: 0.1,
@@ -38,94 +47,69 @@ export default function ImageGallery() {
   });
   const userName = useRef<string | null>(null);
   const queryClient = useQueryClient();
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const POLLING_INTERVAL = 2000; // 2 seconds
 
   useEffect(() => {
     userName.current = localStorage.getItem('userName');
 
-    // Set up polling for real-time updates
-    const pollLikeUpdates = async () => {
-      if (!userName.current) return;
+    // Set up realtime subscription for likes
+    const subscription = supabase
+      .channel('likes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'likes',
+        },
+        async (payload: RealtimePostgresChangesPayload<LikeRecord>) => {
+          const record = payload.new || payload.old;
+          if (!record) return;
 
-      const visibleImageIds = queryClient
-        .getQueriesData<InfiniteData<ApiResponse>>({ queryKey: ['images'] })
-        .flatMap(([, data]) => 
-          data?.pages.flatMap(page => page.images.map(img => img.id)) ?? []
-        );
+          const imageId = record.image_id;
+          if (!imageId) return;
 
-      if (visibleImageIds.length === 0) return;
-
-      try {
-        const response = await fetch(
-          `/api/likes/poll?ids=${visibleImageIds.join(',')}&userName=${encodeURIComponent(userName.current)}`
-        );
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch like updates');
+          // Fetch updated like status for the affected image
+          const response = await fetch(
+            `/api/likes?ids=${imageId}&userName=${encodeURIComponent(userName.current || '')}`
+          );
+          
+          if (!response.ok) return;
+          
+          const likeStatusMap = await response.json();
+          
+          // Update the cache with new like status
+          queryClient.setQueriesData<InfiniteData<ApiResponse>>(
+            { queryKey: ['images'] },
+            (oldData) => {
+              if (!oldData) return oldData;
+              
+              return {
+                ...oldData,
+                pages: oldData.pages.map((page) => ({
+                  ...page,
+                  images: page.images.map((image) => {
+                    if (image.id === imageId) {
+                      const newStatus = likeStatusMap[imageId];
+                      return {
+                        ...image,
+                        likes: {
+                          count: newStatus.count,
+                          liked: newStatus.liked ? 1 : 0
+                        }
+                      };
+                    }
+                    return image;
+                  })
+                }))
+              };
+            }
+          );
         }
-
-        const likeStatusMap = await response.json();
-        
-        queryClient.setQueriesData<InfiniteData<ApiResponse>>(
-          { queryKey: ['images'] },
-          (oldData) => {
-            if (!oldData) return oldData;
-            
-            return {
-              ...oldData,
-              pages: oldData.pages.map((page) => ({
-                ...page,
-                images: page.images.map((image) => {
-                  const newStatus = likeStatusMap[image.id];
-                  if (newStatus) {
-                    return {
-                      ...image,
-                      likes: {
-                        ...image.likes,
-                        count: newStatus.count,
-                        liked: newStatus.liked ? 1 : 0
-                      }
-                    };
-                  }
-                  return image;
-                })
-              }))
-            };
-          }
-        );
-      } catch (error) {
-        console.error('Error polling like updates:', error);
-      }
-    };
-
-    // Start polling when the component mounts
-    const startPolling = () => {
-      pollLikeUpdates(); // Initial poll
-      pollingIntervalRef.current = setInterval(pollLikeUpdates, POLLING_INTERVAL);
-    };
-
-    // Stop polling when the tab is hidden
-    const handleVisibilityChange = () => {
-      if (document.hidden && pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      } else if (!document.hidden && !pollingIntervalRef.current) {
-        startPolling();
-      }
-    };
-
-    // Set up visibility change listener
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Start initial polling
-    startPolling();
+      )
+      .subscribe();
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      subscription.unsubscribe();
     };
   }, [queryClient]);
 
@@ -149,7 +133,7 @@ export default function ImageGallery() {
     // Get initial like status
     const imageIds = data.images.map((image: ImageData) => image.id);
     const likeResponse = await fetch(
-      `/api/likes/poll?ids=${imageIds.join(',')}&userName=${encodeURIComponent(userName.current || '')}`
+      `/api/likes?ids=${imageIds.join(',')}&userName=${encodeURIComponent(userName.current || '')}`
     );
     const likeStatusMap = await likeResponse.json();
     

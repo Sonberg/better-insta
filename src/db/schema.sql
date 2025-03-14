@@ -11,4 +11,11 @@ CREATE TABLE IF NOT EXISTS likes (
 
 -- Create index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_likes_image_id ON likes(image_id);
-CREATE INDEX IF NOT EXISTS idx_likes_user_name ON likes(user_name); 
+CREATE INDEX IF NOT EXISTS idx_likes_user_name ON likes(user_name);
+
+-- Enable realtime for the likes table
+ALTER TABLE likes REPLICA IDENTITY FULL;
+
+-- Create publication for realtime
+DROP PUBLICATION IF EXISTS supabase_realtime;
+CREATE PUBLICATION supabase_realtime FOR TABLE likes; 
